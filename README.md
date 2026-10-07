@@ -4,6 +4,8 @@ A minimal, animated introduction to inference workflow for senior CS undergradua
 
 ## Open the demo
 
+[Open the live visualization](https://zaiyang-zhang.github.io/inference-workflow/)
+
 Download `one-matmul.html` and open it in a modern browser. Everything is in one file; no installation, server, or internet connection is needed.
 
 Use the page buttons at the bottom. Play/pause, replay, and the progress slider control the animations. Space pauses; left/right arrow keys change pages when focus is outside a control.

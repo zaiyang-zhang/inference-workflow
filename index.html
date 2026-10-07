@@ -1,0 +1,331 @@
+<!doctype html>
+<!--
+From Layers to Hardware — an interactive inference workflow demo.
+Copyright 2026 Zaiyang Zhang
+SPDX-License-Identifier: Apache-2.0
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From layers to hardware — inference workflow</title>
+<style>
+:root{color-scheme:light;--paper:#fafaf8;--ink:#292d32;--muted:#71777b;--line:#daddd9;--faint:#edf0ed;--x:#d57569;--w:#719b78;--y:#6e91c7;--compute:#a08dc4;--middle:#b9a474}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input{font:inherit}button{border:0;border-radius:4px;background:transparent;color:inherit;padding:8px 12px;cursor:pointer}button:hover{background:var(--faint)}button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--y);outline-offset:4px}button[aria-pressed=true]{background:var(--ink);color:var(--paper)}main{max-width:1020px;margin:auto;padding:24px 36px 18px}.eyebrow{font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}h1{font:400 36px/1.2 Georgia,serif;letter-spacing:-1px;margin:6px 0 16px}.playback{display:flex;align-items:center;gap:2px;font-size:12px}.playback #play{min-width:76px;background:var(--faint)}
+.model-map{padding:15px 0 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.map-row{display:flex;align-items:center;gap:20px;min-height:40px}.map-label{width:90px;flex-shrink:0;font-size:11px;color:var(--muted)}.sequence{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.layer{color:var(--muted);padding:3px 10px}.layer.focus{color:var(--ink);border:1px solid var(--ink);border-radius:3px}.arrow{color:#a9afad;font-size:13px}.operator{padding:4px 10px;color:var(--muted)}.operator.focus{background:var(--faint);color:var(--ink);border-radius:3px}.kernel-group{position:relative;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:4px;padding:6px 2px;margin-top:13px}.kernel-name{position:absolute;left:7px;top:-14px;font-size:10px;white-space:nowrap;color:var(--muted);background:var(--paper);padding:0 3px}.definition{font-size:11px;color:var(--muted);margin:5px 0 0 110px}.lesson-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:18px;min-height:33px}h2{font-size:17px;font-weight:400;margin:0}.choices{display:flex;gap:4px;font-size:12px}.choices button{padding:6px 10px}.caption{font-size:12px;color:var(--muted);margin:8px 0 0;min-height:18px}
+canvas{display:block;width:100%;height:420px}.result{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-top:8px;min-height:30px}.takeaway{font-size:14px}.measure{font-size:12px;color:var(--muted);white-space:nowrap}.measure strong{color:var(--ink);font-size:17px;font-weight:400}.seek{display:flex;align-items:center;gap:14px;margin-top:10px}.seek input{width:100%;min-width:0;accent-color:var(--ink);cursor:pointer}.seek span{font-size:10px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}.pages{display:flex;gap:0;margin-top:22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.pages button{flex:1;position:relative;border-radius:0;padding:13px 8px;font-size:12px;color:var(--muted);white-space:nowrap}.pages button[aria-current=page]{color:var(--ink);background:var(--faint)}.pages button[aria-current=page]:before{content:"";position:absolute;height:2px;left:0;right:0;top:-1px;background:var(--ink)}.pages .number{font-size:10px;color:var(--muted);margin-right:7px}.footer{display:flex;justify-content:space-between;gap:20px;margin-top:12px;font-size:10px;color:var(--muted)}details{max-width:620px}summary{cursor:pointer;list-style:none}details[open]{flex:1}.notes{margin:14px 0 0;padding:14px 0;border-top:1px solid var(--line);font-size:12px}.notes p{margin:0 0 10px}.notes a{color:inherit}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}#app:fullscreen{background:var(--paper);max-width:none;height:100%;overflow:auto}[hidden]{display:none!important}
+@media(max-width:650px){main{padding:18px 18px 16px}h1{font-size:30px;margin-bottom:14px}.top{flex-wrap:wrap}.playback{margin-left:auto;margin-bottom:12px}.map-label{width:62px;font-size:10px}.map-row{gap:8px}.sequence{gap:5px}.layer,.operator{padding:4px 7px;font-size:12px}.definition{margin-left:70px;font-size:10px}.kernel-group{gap:1px}.kernel-name{font-size:9px;left:2px}.lesson-head{align-items:flex-start;flex-direction:column;gap:10px}h2{font-size:16px}.caption{font-size:11px}.choices{font-size:11px}.choices button{padding:7px 9px}canvas{height:470px}.takeaway{font-size:12px}.measure{font-size:11px}.measure strong{font-size:15px}.result{gap:10px}.pages{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:18px}.pages button{padding:13px 6px;text-align:left;font-size:12px}.footer{font-size:9px;gap:12px}.footer .key{display:none}.seek{gap:8px}.seek span{font-size:9px}}
+.comparison-active{max-width:1160px}.comparison{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;margin-top:22px}.compare-side{min-width:0}.side-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-height:54px}.side-head h3{font-size:16px;font-weight:400;margin:3px 0 0}.side-kicker{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}.side-timing{font-size:12px;color:var(--muted);white-space:nowrap;margin-top:17px}.difference{display:flex;align-items:center;gap:14px;min-height:56px;margin-bottom:12px}.difference-label{font-size:11px;color:var(--muted);min-width:83px}.payload{height:23px;background:var(--w);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--paper);font-size:11px}.work-units{display:flex;gap:5px}.work-unit{display:flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:3px;background:var(--compute);color:var(--paper);font-size:11px}.fusion-cue{display:flex;align-items:center;gap:8px;min-height:56px;margin-bottom:12px}.fusion-cue .kernel-group{margin-top:9px;font-size:12px}.fusion-cue .operator{font-size:12px;padding:4px 7px}.trip-count{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}.trip-count strong{font-weight:400;font-size:19px;color:var(--middle);margin-right:4px}.finish-line{display:flex;align-items:center;justify-content:space-between;min-height:28px;font-size:11px;color:var(--muted);margin-top:5px}.finish-line .is-done{color:var(--w)}.sync-label{font-size:11px;color:var(--muted);margin:15px 0 2px;text-align:center}.comparison-active .result{margin-top:8px}
+@media(max-width:760px){.comparison{grid-template-columns:1fr;gap:24px}.compare-side+ .compare-side{border-top:1px solid var(--line);padding-top:20px}.side-head h3{font-size:15px}.difference{min-height:50px;margin-bottom:5px}.fusion-cue{gap:5px}.trip-count{font-size:10px}.trip-count strong{font-size:17px}.comparison-active .result{flex-wrap:wrap}.sync-label{text-align:left}}
+
+.spotlight{border-top:1px solid var(--line);padding-top:10px;margin-bottom:10px}.focus-label{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:8px}.focus-label strong{font-weight:500}.focus-load{color:var(--x)}.focus-compute{color:var(--compute)}.focus-middle{color:var(--middle)}.chunk-bars{display:flex;gap:8px}.chunk-bar{flex:1;height:23px;background:var(--faint);border-radius:3px;position:relative}.chunk-bar i{display:block;height:100%;border-radius:3px;font-style:normal;text-align:center;font-size:11px;line-height:23px;color:var(--paper)}.focus-hint{font-size:11px;color:var(--muted);margin-top:8px;min-height:16px}.hardware-names{font-size:11px;line-height:1.6;color:var(--muted);min-height:36px;margin:-4px 0 10px}.transfer-dots{height:23px;display:flex;gap:8px;align-items:center}.transfer-dots i{width:17px;height:17px;background:var(--middle);border-radius:3px}.transfer-dots.empty{border:1px dashed var(--line);border-radius:3px;color:var(--muted);font-size:11px;justify-content:center}.batch-eight{display:flex;align-items:center;gap:5px}.batch-eight b{font-size:19px;font-weight:400;margin-right:10px}.batch-eight i{height:15px;width:15px;border:1px solid var(--y);border-radius:3px;background:#6e91c722}.sd-active canvas{height:570px}.sd-active .choices{display:flex;flex-wrap:wrap}.sd-cost{display:grid;grid-template-columns:62px 1fr 50px;gap:7px;align-items:center;font-size:11px;margin:7px 0}.sd-cost b{font-weight:400;text-align:right}.sd-cost .track{height:15px;background:var(--faint);border-radius:2px}.sd-cost i{display:block;height:100%;border-radius:2px}.sd-note{font-size:11px;margin-top:8px;color:var(--muted)}
+@media(max-width:650px){.pages button:last-child{grid-column:1/-1;text-align:center}.focus-label{font-size:11px}.chunk-bars{gap:6px}.sd-active .choices button{font-size:11px}.decode-map .sequence{gap:4px}.hardware-names{font-size:10px}.batch-eight{gap:4px}.batch-eight i{width:13px;height:13px}}
+</style>
+</head>
+<body>
+<main id="app">
+ <div class="eyebrow">From layers to hardware</div>
+ <div class="top"><h1>Where does the time go?</h1><div class="playback"><button id="play" aria-label="Pause animation">Ⅱ Pause</button><button id="replay" aria-label="Replay animation">↺</button><button id="fullscreen" aria-label="Toggle fullscreen">⛶</button></div></div>
+ <div id="model-map" class="model-map">
+  <div class="map-row"><span class="map-label">Model layers</span><div class="sequence"><span class="layer">Attention</span><span class="arrow">→</span><span class="layer focus">FFN</span><span class="arrow">→</span><span class="layer">…</span></div></div>
+  <div class="map-row"><span class="map-label">Operators</span><div id="operators" class="sequence"><span class="operator focus">Matmul</span><span class="arrow">→</span><span class="operator">GELU</span><span class="arrow">→</span><span class="operator">Matmul</span></div></div>
+  <div id="definition" class="definition">Operator = one operation on tensors.</div>
+ </div>
+ <div id="decode-map" class="model-map" hidden><div class="map-row"><span class="map-label">Batch size</span><div class="batch-eight"><b>8</b><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="map-row"><span class="map-label">Decoding</span><div class="sequence"><span class="operator">Draft</span><span class="arrow">→</span><span class="operator focus">Target verify</span><span class="arrow">→</span><span class="operator">Accept / correct</span></div></div></div>
+ <div class="lesson-head"><h2 id="lesson-title">Operators & workflow</h2><div id="choices" class="choices" role="group" aria-label="Compare workflows"></div></div>
+ <p id="caption" class="caption">Model order gives dependencies. Chunks can overlap.</p>
+ <canvas id="scene" role="img" aria-label="Activations and weights move from memory to compute in chunks. Loading later chunks can overlap computation on an earlier chunk."></canvas>
+ <div id="comparison" class="comparison" hidden>
+  <section class="compare-side" aria-labelledby="before-name"><div class="side-head"><div><span class="side-kicker">Before</span><h3 id="before-name"></h3></div><span id="before-timing" class="side-timing"></span></div><div id="before-cue"></div><canvas id="before-scene" role="img" aria-label="Before optimization"></canvas><div class="finish-line"><span id="before-output"></span><span id="before-finish"></span></div></section>
+  <section class="compare-side" aria-labelledby="after-name"><div class="side-head"><div><span class="side-kicker">After</span><h3 id="after-name"></h3></div><span id="after-timing" class="side-timing"></span></div><div id="after-cue"></div><canvas id="after-scene" role="img" aria-label="After optimization"></canvas><div class="finish-line"><span id="after-output"></span><span id="after-finish"></span></div></section>
+ </div>
+ <div id="sync-label" class="sync-label" hidden>Same workload · shared clock · same time scale</div>
+ <div class="result"><div id="takeaway" class="takeaway" aria-live="polite">Memory-bound · compute waits for data.</div><div id="measure" class="measure"></div></div>
+ <div class="seek"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Animation progress"><span id="time">0 / 17 ticks</span></div>
+ <nav class="pages" aria-label="Learning pages"><button data-page="0" aria-current="page"><span class="number">01</span>Workflow</button><button data-page="1"><span class="number">02</span>Quantization</button><button data-page="2"><span class="number">03</span>Hardware support</button><button data-page="3"><span class="number">04</span>Kernel fusion</button><button data-page="4"><span class="number">05</span>Speculative decoding</button></nav>
+ <footer class="footer"><span>Illustrative timing <span class="key">· Space: pause · ← →: page</span></span><details><summary>Terms & teaching notes ↗</summary><div class="notes">
+  <p><b>Layer:</b> a model building block. <b>FFN:</b> Feed-Forward Network. <b>Operator:</b> one operation on tensors, such as Matmul or GELU. <b>Kernel:</b> a device program implementing one or more operators. <b>HBM:</b> High Bandwidth Memory.</p>
+  <p><b>Workflow:</b> dependencies still apply. Matmul precedes GELU for each result. A kernel can load a later chunk while computing an earlier one and writing back a completed one. The memory lane combines reads and writes on one shared resource; two on-chip work buffers retain chunks until writeback. The four chunks represent independent completed output regions, with all required input reads grouped together.</p>
+  <p><b>Bounds:</b> memory-bound means transfer demand exceeds compute demand at the chosen resource rates. Compute-bound means the reverse. Waits at startup and drain can occur in either case. All durations are teaching units, not measured hardware performance.</p>
+  <p><b>Quantization:</b> this example changes weights only, from BF16 to INT8. Weight payload halves; activation and output bytes stay the same. On-chip dequantization adds compute work. Quantization approximates the weights, and metadata such as scales adds overhead that is omitted here.</p>
+  <p><b>Hardware support:</b> the matrix-unit implementation uses an illustrative 4× compute rate for the same Matmul. A kernel or library must target the specialized instructions with supported shapes and dtypes. Speedup can stop at the memory limit.</p>
+  <p><b>Fusion:</b> the example combines Matmul and GELU. Separate kernels finish and store the Matmul output before the GELU kernel reads it. The fused kernel retains each intermediate on-chip, applies GELU and writes only the final output. Arithmetic and final values are unchanged; the intermediate HBM write/read and one launch disappear. Launch overhead is not included in the displayed times.</p>
+  <p><b>Hardware names:</b> NVIDIA CUDA Cores provide general arithmetic; NVIDIA Tensor Cores specialize in matrix multiply-accumulate. Google TPU matrix units are called MXUs. Apple M5 GPUs contain a Neural Accelerator in each GPU core for matrix-based ML workloads. These are examples of hardware paths, not identical units or a cross-device speed comparison.</p>
+  <p><b>Speculative decoding:</b> BS 8 means eight requests, not eight draft tokens. This scripted greedy example proposes up to three tokens per active request. One causal target pass scores all candidate positions in parallel. Accept the matching prefix, discard the suffix after a mismatch, and append the target correction; an all-accepted draft can append a target bonus token. Both paths produce the same eight tokens per request. Completed lanes are masked. Verification uses a padded four-position batch.</p>
+  <p><b>SD timing:</b> the two device presets keep batch size and acceptance fixed. Target pass time is the larger of weight-transfer demand and compute demand, approximating streaming overlap across a forward pass. Verification demands four times the target arithmetic per pass. Draft work and commit time are included. Spare compute can absorb verification; a compute-bound device cannot. Timings are illustrative, not a claim that BS 8 guarantees a speedup. KV-cache traffic and other overheads are omitted. Sampling requires probability-based acceptance and correction rather than greedy equality.</p>
+  <p><a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">Speculative decoding</a> · <a href="https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/" target="_blank" rel="noopener">CUDA / Tensor Cores</a> · <a href="https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm" target="_blank" rel="noopener">TPU MXU</a> · <a href="https://developer.apple.com/videos/play/tech-talks/111432/" target="_blank" rel="noopener">Apple M5 GPU</a></p>
+  <p><a href="https://jax-ml.github.io/scaling-book/tpus/" target="_blank" rel="noopener">Data movement</a> · <a href="https://jax-ml.github.io/scaling-book/roofline/" target="_blank" rel="noopener">Bounds</a> · <a href="https://docs.pytorch.org/ao/stable/contributing/quantization_overview.html" target="_blank" rel="noopener">Quantization</a> · <a href="https://developer.nvidia.com/blog/how-to-write-high-performance-matrix-multiply-in-nvidia-cuda-tile/" target="_blank" rel="noopener">Matrix hardware</a> · <a href="https://openxla.org/xla/gpu_architecture#fusion" target="_blank" rel="noopener">Fusion</a></p>
+ </div></details></footer>
+</main>
+<script>
+(() => {
+ 'use strict';
+ const $=id=>document.getElementById(id),canvas=$('scene');let ctx=canvas.getContext('2d');
+ const C={ink:'#292d32',muted:'#71777b',line:'#daddd9',faint:'#edf0ed',paper:'#fafaf8',x:'#d57569',w:'#719b78',y:'#6e91c7',compute:'#a08dc4',middle:'#b9a474'};
+ const lessonData=[
+  {title:'Operators & workflow',caption:'Model order gives dependencies. Chunks can overlap.',options:['Memory-bound','Compute-bound'],description:'The selected Matmul operator consumes activation and weight chunks. Data movement and computation overlap. Compare memory-bound compute waits with compute-bound data waits.'},
+  {title:'Quantization',caption:'Watch Load 0–3 shrink. Weight bytes halve.',options:['BF16 weights','INT8 weights'],description:'Quantization halves the width of weight packets while activations and outputs stay unchanged. On-chip dequantization adds a little work; fewer bytes cross the memory link.'},
+  {title:'Hardware support',caption:'Watch Compute 0–3 shrink. Loads stay the same.',options:['General ALU','Matrix unit'],description:'A general arithmetic unit performs the Matmul more slowly. A specialized matrix unit performs more work each tick, eventually leaving memory as the bottleneck.'},
+  {title:'Kernel fusion',caption:'Watch the brown HBM writes + reads disappear.',options:['Separate kernels','Fused kernel'],description:'Separate Matmul and GELU kernels write and reread an intermediate in HBM. A fused kernel performs both operators and retains the intermediate on-chip.'},
+  {title:'Speculative decoding',caption:'More tokens per target weight load — if compute has room.',options:['Autoregressive','Draft + verify'],description:'Eight requests generate eight tokens each. A small draft model proposes up to three tokens per request. The target verifies them in one parallel pass, accepts a matching prefix and corrects the first mismatch. Compare spare compute with a compute-bound device.'}
+ ];
+ let state={page:0,variants:[0,0,0,0,1],sdBound:0,playing:!matchMedia('(prefers-reduced-motion: reduce)').matches,clock:0};
+ let W=900,H=420,last=0,dragging=false,current=null,baseline=null,horizon=20;
+ const clamp=v=>Math.max(0,Math.min(1,v)),ease=p=>{p=clamp(p);return p*p*(3-2*p)};
+ function color(c,a){return c+Math.round(clamp(a)*255).toString(16).padStart(2,'0')}
+ function text(s,x,y,size=13,c=C.ink,align='center',serif=false){ctx.fillStyle=c;ctx.textAlign=align;ctx.textBaseline='middle';ctx.font=size+'px '+(serif?'Georgia, serif':'-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif');ctx.fillText(s,x,y)}
+ function box(x,y,w,h,fill=C.faint,stroke=null,r=5){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
+ function path(points,c=C.line,width=1){ctx.beginPath();ctx.moveTo(...points[0]);points.slice(1).forEach(p=>ctx.lineTo(...p));ctx.strokeStyle=c;ctx.lineWidth=width;ctx.stroke()}
+ function line(x1,y1,x2,y2,c=C.line){path([[x1,y1],[x2,y2]],c)}
+ function arrow(points,c=C.line,width=1){path(points,c,width);const a=points[points.length-2],b=points[points.length-1],angle=Math.atan2(b[1]-a[1],b[0]-a[0]);line(b[0],b[1],b[0]-5*Math.cos(angle-.5),b[1]-5*Math.sin(angle-.5),c);line(b[0],b[1],b[0]-5*Math.cos(angle+.5),b[1]-5*Math.sin(angle+.5),c)}
+ function packet(points,p,c,label='',width=20){if(p<0||p>1)return;const lengths=points.slice(1).map((v,i)=>Math.hypot(v[0]-points[i][0],v[1]-points[i][1]));let distance=p*lengths.reduce((a,b)=>a+b,0),i=0;while(i<lengths.length-1&&distance>lengths[i])distance-=lengths[i++];const f=lengths[i]?distance/lengths[i]:0,x=points[i][0]+(points[i+1][0]-points[i][0])*f,y=points[i][1]+(points[i+1][1]-points[i][1])*f;box(x-width/2,y-10,width,20,c,null,3);if(label&&width>=18)text(label,x,y,10,C.paper)}
+
+ // Two buffers, one memory channel (read + write), one compute unit.
+ // Each stage is a kernel; a later stage begins after the preceding kernel.
+ function schedule(stages){
+  const events=[];let origin=0;
+  for(let stage=0;stage<stages.length;stage++){
+   const cfg=stages[stage],slots=[null,null];let t=origin,next=0,done=0,memory=null,compute=null;
+   while(done<4){
+    if(memory&&memory.end<=t){if(memory.kind==='load')slots[memory.slot].phase='ready';else{slots[memory.slot]=null;done++}memory=null}
+    if(compute&&compute.end<=t){slots[compute.slot].phase='output';compute=null}
+    if(!compute){const r=slots.map((s,i)=>({s,i})).filter(v=>v.s?.phase==='ready').sort((a,b)=>a.s.n-b.s.n)[0];if(r){const e={n:r.s.n,slot:r.i,stage,kind:'compute',op:cfg.op,start:t,end:t+cfg.compute,dequant:cfg.dequant||0,parts:cfg.parts||null,input:cfg.input,output:cfg.output};events.push(e);compute=e;r.s.phase='compute'}}
+    if(!memory){const r=slots.map((s,i)=>({s,i})).filter(v=>v.s?.phase==='output').sort((a,b)=>a.s.n-b.s.n)[0];if(r){const e={n:r.s.n,slot:r.i,stage,kind:'store',op:cfg.op,start:t,end:t+cfg.store,input:cfg.input,output:cfg.output};events.push(e);memory=e;r.s.phase='store'}else if(next<4){const free=slots.findIndex(s=>s===null);if(free>=0){const e={n:next,slot:free,stage,kind:'load',op:cfg.op,start:t,end:t+cfg.load,input:cfg.input,output:cfg.output};slots[free]={n:next++,phase:'load'};events.push(e);memory=e}}}
+    const ends=[memory?.end,compute?.end].filter(v=>v!==undefined&&v>t);if(ends.length)t=Math.min(...ends);else if(done<4)throw Error('Invalid schedule');
+   }
+   origin=t;
+  }
+  const memoryWork=events.filter(e=>e.kind!=='compute').reduce((n,e)=>n+e.end-e.start,0),computeWork=events.filter(e=>e.kind==='compute').reduce((n,e)=>n+e.end-e.start,0);
+  return {events,total:origin,memoryWork,computeWork,bound:memoryWork>=computeWork?'Memory-bound':'Compute-bound'};
+ }
+ // Teaching model: eight requests, three candidate tokens, padded causal verification.
+ // A target pass streams weights; its duration is max(memory demand, compute demand).
+ function decodingSchedule(spec,bound){
+  const memory=bound?.8:3,arithmetic=bound?2:.6,events=[],rounds=[],counts=Array(8).fill(0);
+  const acceptance=[[3,2,1,3,2,3,0,2],[3,3,3,2,3,2,3,2],[3,3,3,3,3,3,2,1]];
+  let t=0;
+  for(let n=0;n<(spec?3:8);n++){
+   const start=t,before=[...counts],draftEnd=t+(spec?.9:0),targetStart=draftEnd,compute=arithmetic*(spec?4:1),targetEnd=targetStart+Math.max(memory,compute),end=targetEnd+(spec?1:0);
+   const rows=counts.map((count,r)=>{
+    if(!spec){counts[r]++;return {request:r,before:count,gamma:0,accepted:0,rejected:false,bonus:false,commit:1,after:counts[r]};}
+    const remaining=8-count,gamma=Math.min(3,remaining),accepted=Math.min(gamma,acceptance[n][r]),rejected=accepted<gamma,bonus=gamma>0&&!rejected&&accepted<remaining,commit=accepted+(rejected||bonus?1:0);
+    counts[r]+=commit;return {request:r,before:count,gamma,accepted,rejected,bonus,commit,after:counts[r]};
+   });
+   if(spec)for(let d=0;d<3;d++)events.push({kind:'draft',start:start+d*.3,end:start+(d+1)*.3,n,position:d});
+   events.push({kind:'weights',start:targetStart,end:targetStart+memory,n},{kind:'verify',start:targetStart,end:targetStart+compute,n});
+   rounds.push({n,start,draftEnd,targetStart,targetEnd,end,before,rows,memory,compute});t=end;
+  }
+  return {type:'decoding',spec:!!spec,bound:bound?'Compute-bound':'Memory-bound',batchSize:8,draftLength:3,events,rounds,total:t,targetPasses:rounds.length,finalCounts:counts};
+ }
+ function decodingFrame(s,t){
+  if(s.type!=='decoding')return null;
+  const counts=Array(8).fill(0);
+  for(const round of s.rounds)if(t>=round.end)round.rows.forEach((row,r)=>counts[r]=row.after);
+  const active=s.rounds.find(r=>t>=r.start&&t<r.end)||null;
+  const phase=!active?'Done':t<active.draftEnd?'Draft':t<active.targetEnd?(s.spec?'Verify':'Decode'):'Accept / correct';
+  return {counts,active,phase,targetCalls:s.rounds.filter(r=>t>=r.targetStart).length};
+ }
+ function drawDecoding(s,v){
+  ctx.clearRect(0,0,W,H);const t=Math.min(state.clock,s.total),f=decodingFrame(s,t),r=f.active,small=W<390;
+  const pad=6,hbm={x:pad,y:25,w:W*.34,h:81},target={x:W*.47,y:25,w:W*.53-pad,h:108},weightsActive=r&&t>=r.targetStart&&t<r.targetStart+r.memory,computeActive=r&&t>=r.targetStart&&t<r.targetStart+r.compute;
+  text('Weights · HBM',hbm.x+8,11,12,C.muted,'left');
+  box(hbm.x,hbm.y,hbm.w,hbm.h,C.faint,C.line,5);
+  for(let i=0;i<4;i++)box(hbm.x+14+(i%2)*22,hbm.y+15+Math.floor(i/2)*22,17,17,color(C.w,.6),null,3);
+  text(f.targetCalls+' / '+s.targetPasses+' loads',hbm.x+hbm.w/2,hbm.y+67,small?11:12,C.w);
+  arrow([[hbm.x+hbm.w,hbm.y+37],[target.x,target.y+37]],weightsActive?C.w:C.line,weightsActive?2:1);
+  if(weightsActive)packet([[hbm.x+hbm.w,hbm.y+37],[target.x,target.y+37]],((t-r.targetStart)*1.8)%1,C.w,'W',18);
+  box(target.x,target.y,target.w,target.h,color(C.compute,computeActive?.07:.02),C.line,5);
+  text('Target model',target.x+target.w/2,target.y+15,13);
+  const cols=v?4:1,sz=small?6:8,gap=4,gridWidth=cols*(sz+gap)-gap,left=target.x+target.w/2-gridWidth/2;
+  for(let row=0;row<8;row++)for(let col=0;col<cols;col++){
+   const masked=r&&r.rows[row].before>=8;
+   const alpha=computeActive&&!masked?.48+.32*Math.sin(t*5)**2:.1;
+   box(left+col*(sz+gap),target.y+29+row*8,sz,5,color(C.compute,alpha),null,1);
+  }
+  text('8 × '+cols+' positions',target.x+target.w/2,target.y+99,11,C.muted);
+  if(v){
+   const draftActive=f.phase==='Draft',dw=Math.min(105,W*.35);
+   box(pad,146,dw,44,color(C.w,draftActive?.1:.025),C.line,5);text('Draft model',pad+dw/2,160,12);text('3 sequential steps',pad+dw/2,179,10,C.muted);
+   arrow([[pad+dw,167],[target.x+target.w/2,167],[target.x+target.w/2,target.y+target.h]],draftActive?C.w:C.line);
+   if(draftActive)packet([[pad+dw,167],[target.x+target.w/2,167],[target.x+target.w/2,target.y+target.h]],((t-r.start)/.3)%1,C.w,'',10);
+   text('Draft → Verify → Accept',W/2,210,small?11:12,C.muted);
+  }else{text('One token per request',W/2,172,14);text('One target pass at a time',W/2,210,11,C.muted);}
+  const stage=r?(v?'Round '+(r.n+1)+' / 3':'Step '+(r.n+1)+' / 8'):'Finished';
+  text(stage+' · '+f.phase,W/2,237,13,computeActive?C.compute:C.ink);
+  const cell=Math.min(29,(W-66)/8),tokenW=cell-4,startX=(W-8*cell)/2+12,tokenY=274,rowH=21;
+  text('ID',startX-10,258,10,C.muted,'right');text('Output tokens',startX+4*cell,258,11,C.muted);
+  for(let row=0;row<8;row++){
+   text(String(row+1).padStart(2,'0'),startX-12,tokenY+row*rowH+8,11,C.muted,'right');
+   for(let col=0;col<8;col++){
+    const x=startX+col*cell,y=tokenY+row*rowH;
+    box(x,y,tokenW,17,C.faint,null,3);
+    if(col<f.counts[row]){box(x,y,tokenW,17,color(C.y,.68),null,3);text(String.fromCharCode(65+(row*3+col)%26),x+tokenW/2,y+9,10,C.paper);}
+   }
+   if(v&&r){
+    const rr=r.rows[row],decision=t>=r.targetEnd,correction=decision&&(t-r.targetEnd)>.65;
+    const visible=decision||f.phase==='Verify'?rr.gamma:Math.min(rr.gamma,Math.floor((t-r.start)/.3)+1);
+    for(let d=0;d<visible;d++){
+     const x=startX+(rr.before+d)*cell,y=tokenY+row*rowH,good=d<rr.accepted,wrong=d===rr.accepted&&rr.rejected,discard=decision&&!good;
+     if(discard&&correction)continue;
+     const col=decision?(good?C.w:wrong?C.x:C.muted):C.w;
+     box(x,y,tokenW,17,decision&&good?color(C.w,.72):color(col,discard?.12:.07),col,3);
+     text(wrong?'?':String.fromCharCode(65+(row*3+rr.before+d)%26),x+tokenW/2,y+9,10,decision&&good?C.paper:col);
+     if(discard)line(x+3,y+14,x+tokenW-3,y+3,col);
+    }
+    if(correction&&(rr.rejected||rr.bonus)){const x=startX+(rr.before+rr.accepted)*cell,y=tokenY+row*rowH;box(x,y,tokenW,17,color(C.y,.75),null,3);text(String.fromCharCode(65+(row*3+rr.before+rr.accepted)%26),x+tokenW/2,y+9,10,C.paper);}
+   }
+  }
+  if(v){const lx=W/2-98;[[C.w,'Draft / accept'],[C.x,'Reject'],[C.y,'Target token']].forEach(([col,label],i)=>{const x=lx+[0,83,135][i];box(x,448,7,7,col,null,1);text(label,x+12,452,10,C.muted,'left');});}
+  else{text('Same final tokens',W/2,452,11,C.muted);}
+  const plotX=58,plotRight=W-7,scale=(plotRight-plotX)/horizon,rows={weights:480,verify:510,draft:540};
+  for(const [kind,label,col] of [['weights','Weights',C.w],['verify','Compute',C.compute],['draft','Draft',C.w]]){
+   const yy=rows[kind];text(label,plotX-7,yy+8,11,col,'right');box(plotX,yy,plotRight-plotX,17,C.faint,null,2);
+   for(const e of s.events.filter(e=>e.kind===kind)){
+    const xx=plotX+e.start*scale,ww=(e.end-e.start)*scale;box(xx+.4,yy,Math.max(1,ww-.8),17,color(col,t<e.start?.12:t>=e.end?.48:.85),null,2);
+    if(kind!=='draft'&&ww>15)text(e.n+1,xx+ww/2,yy+9,10,t>=e.start&&t<e.end?C.paper:C.ink);
+   }
+  }
+  line(plotX+Math.min(state.clock,horizon)*scale,474,plotX+Math.min(state.clock,horizon)*scale,561,C.ink);
+ }
+
+ function config(page,variant){
+  const one=(load,compute,store,extra={})=>[{load,compute,store,op:'Matmul',input:'XW',output:'Y',...extra}];
+  if(page===0)return variant?one(1,4,1):one(3,1,1);
+  if(page===1)return variant?one(2,1.3,1,{dequant:.3}):one(3,1,1);
+  if(page===2)return variant?one(1,1.5,1):one(1,6,1);
+  return variant?one(1,3,1,{op:'Matmul + GELU',parts:[2,1]}):[{load:1,compute:2,store:1,op:'Matmul',input:'XW',output:'I'},{load:1,compute:1,store:1,op:'GELU',input:'I',output:'Y'}];
+ }
+ function build(){const p=state.page;if(p===4){baseline=decodingSchedule(0,state.sdBound);current=decodingSchedule(1,state.sdBound);horizon=Math.max(baseline.total,current.total);return;}if(p>0)state.variants[p]=1;const v=state.variants[p];current=schedule(config(p,v));baseline=schedule(config(p,0));horizon=Math.max(schedule(config(p,0)).total,schedule(config(p,1)).total);}
+ function sumWork(){if(state.page===4)return {batchSize:8,draftLength:3,outputTokens:64,total:current.total,baseline:baseline.total,speedup:baseline.total/current.total,bound:state.sdBound?'Compute-bound':'Memory-bound',targetPasses:{before:8,after:3}};return {memory:current.memoryWork,compute:current.computeWork,bound:current.bound,total:current.total,baseline:baseline.total,speedup:baseline.total/current.total,intermediateTransfers:current.events.filter(e=>e.kind==='load'&&e.input==='I'||e.kind==='store'&&e.output==='I').length,computeEvents:current.events.filter(e=>e.kind==='compute').length,weightBits:state.page===1&&state.variants[1]===1?8:16}}
+ function updateUI(){
+  const p=state.page,v=state.variants[p],lesson=lessonData[p];
+  $('lesson-title').textContent=lesson.title;$('caption').textContent=p===4?(state.sdBound?'Compute-bound: extra verification competes for compute.':'Memory-bound: extra verification fits in the memory wait.'):lesson.caption;canvas.setAttribute('aria-label',lesson.description);
+  $('choices').replaceChildren();$('choices').hidden=p>0&&p!==4;if(p===4)['Spare compute','Compute-bound'].forEach((name,i)=>{const b=document.createElement('button');b.textContent=name;b.setAttribute('aria-pressed',i===state.sdBound);b.dataset.bound=i;b.addEventListener('click',()=>{state.sdBound=i;state.clock=0;build();updateUI();draw()});$('choices').append(b)});if(p===0)lesson.options.forEach((name,i)=>{const b=document.createElement('button');b.textContent=name;b.type='button';b.dataset.variant=i;b.setAttribute('aria-pressed',i===v);b.addEventListener('click',()=>{state.variants[p]=i;state.clock=0;build();updateUI();draw()});$('choices').append(b)});
+  canvas.hidden=p>0;$('comparison').hidden=p===0;$('sync-label').hidden=p===0;$('app').classList.toggle('comparison-active',p>0);$('app').classList.toggle('sd-active',p===4);$('model-map').hidden=p===4;$('decode-map').hidden=p!==4;
+  if(p===3){$('operators').innerHTML='<span class="operator focus">Matmul</span><span class="arrow">→</span><span class="operator focus">GELU</span><span class="arrow">→</span><span class="operator">Matmul</span>';$('definition').textContent='Kernel = a device program for one or more operators.'}
+  else{$('operators').innerHTML='<span class="operator focus">Matmul</span><span class="arrow">→</span><span class="operator">GELU</span><span class="arrow">→</span><span class="operator">Matmul</span>';$('definition').textContent='Operator = one operation on tensors.'}
+  const messages=[current.bound==='Memory-bound'?'Memory-bound · compute waits for data.':'Compute-bound · data waits for compute.',v?'Less traffic · approximate weights.':'Weights move as 16-bit values.',v?'Faster compute · memory now limits progress.':'Compute-bound · work is still in the queue.',v?'Brown HBM transfers: 8 → 0.':'Intermediate: write to HBM, read it back.',state.sdBound?'Compute is full. Verification adds more work.':'Spare compute → verify more tokens per weight load.'];
+  $('takeaway').textContent=messages[p];const metric=sumWork();$('measure').innerHTML=p>0?'<strong>'+(metric.speedup>=1?metric.speedup:(1/metric.speedup)).toFixed(2)+'×</strong> '+(metric.speedup>=1?'faster':'slower'):'<strong>'+Number(current.total.toFixed(1))+'</strong> ticks';
+  if(p>0){
+   $('before-name').textContent=lesson.options[0];$('after-name').textContent=lesson.options[1];$('before-timing').textContent=Number(baseline.total.toFixed(1))+' ticks';$('after-timing').textContent=Number(current.total.toFixed(1))+' ticks';
+   for(const [id,variant] of [['before-cue',0],['after-cue',1]]){
+    let cue='';
+    if(p===1)cue='<div class="difference"><span class="difference-label">Weight payload</span><span class="payload" style="width:'+(variant?72:144)+'px">'+(variant?'8':'16')+' bits</span></div>';
+    if(p===2)cue='<div class="difference"><span class="difference-label">Work / tick</span><div class="work-units">'+Array.from({length:variant?4:1},()=>'<span class="work-unit">×+</span>').join('')+'</div></div>';
+    if(p===3)cue=variant?'<div class="fusion-cue"><span class="kernel-group"><span class="kernel-name">1 kernel</span><span class="operator">Matmul</span><span class="arrow">→</span><span class="operator">GELU</span></span><span class="trip-count"><strong>0</strong>HBM trips*</span></div>':'<div class="fusion-cue"><span class="kernel-group"><span class="kernel-name">Kernel 1</span><span class="operator">Matmul</span></span><span class="arrow">→</span><span class="kernel-group"><span class="kernel-name">Kernel 2</span><span class="operator">GELU</span></span><span class="trip-count"><strong>2</strong>HBM trips*</span></div>';
+    if(p===1||p===2){const compute=p===2,duration=compute?(variant?1.5:6):(variant?2:3),ratio=compute?(variant?.25:1):(variant?2/3:1),col=compute?C.compute:C.x;cue+='<div class="spotlight"><div class="focus-label '+(compute?'focus-compute':'focus-load')+'"><strong>'+(compute?'Compute':'Load')+' 0–3</strong><span>'+duration+' ticks each</span></div><div class="chunk-bars">'+Array.from({length:4},(_,n)=>'<span class="chunk-bar"><i style="width:'+ratio*100+'%;background:'+col+'">'+n+'</i></span>').join('')+'</div><div class="focus-hint">'+(compute?(variant?'Same loads · faster arithmetic':'Same loads · general arithmetic'):variant?'Same activation · ½ weight bytes':'Activation + 16-bit weights')+'</div></div>';if(compute)cue+='<div class="hardware-names">'+(variant?'NVIDIA Tensor Cores · Google TPU MXU<br>Apple M5 GPU Neural Accelerators':'CPU / SIMD · NVIDIA CUDA Cores<br>General arithmetic')+'</div>';}
+    if(p===3)cue+='<div class="spotlight"><div class="focus-label focus-middle"><strong>Intermediate HBM transfers</strong><span>'+(variant?'0':'8')+'</span></div><div class="transfer-dots '+(variant?'empty':'')+'">'+(variant?'Kept on-chip':Array.from({length:8},()=>'<i></i>').join(''))+'</div></div>';
+    if(p===4){const read=state.sdBound?.8:3,work=(state.sdBound?2:.6)*(variant?4:1),capacity=state.sdBound?8:3;cue='<div class="spotlight"><div class="focus-label"><strong>Target positions / request</strong><span>'+(variant?'4':'1')+'</span></div><div class="sd-cost"><span>Weights</span><div class="track"><i style="width:'+read/capacity*100+'%;background:'+C.w+'"></i></div><b>'+read+' ticks</b></div><div class="sd-cost"><span>Compute</span><div class="track"><i style="width:'+work/capacity*100+'%;background:'+C.compute+'"></i></div><b>'+work+' ticks</b></div><div class="sd-note">'+(state.sdBound?(variant?'Extra verification extends the pass.':'Compute sets the pass time.'):(variant?'Extra verification fits in the memory wait.':'Compute has unused capacity.'))+'</div></div>';}
+    $(id).innerHTML=cue;
+   }
+   $('sync-label').textContent=p===4?'BS 8 · same 64 output tokens · shared clock':p===3?'Shared clock · same time scale · *per intermediate chunk':'Same workload · shared clock · same time scale';
+   $('before-scene').setAttribute('aria-label','Before: '+lesson.options[0]+'. '+lesson.description);$('after-scene').setAttribute('aria-label','After: '+lesson.options[1]+'. '+lesson.description);
+  }
+  document.querySelectorAll('[data-page]').forEach((b,i)=>{if(i===p)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+ }
+ function selectPage(p){state.page=(p+lessonData.length)%lessonData.length;state.clock=0;build();updateUI();draw()}
+ function playLabel(){$('play').textContent=state.playing?'Ⅱ Pause':'▶ Play';$('play').setAttribute('aria-label',state.playing?'Pause animation':'Play animation')}
+
+ function drawPanel(current,v){
+  if(state.page===4){drawDecoding(current,v);return;}
+  ctx.clearRect(0,0,W,H);const small=W<650,p=state.page,t=Math.min(state.clock,current.total),active=current.events.filter(e=>t>=e.start&&t<e.end),load=active.find(e=>e.kind==='load'),compute=active.find(e=>e.kind==='compute'),store=active.find(e=>e.kind==='store');
+  const cx=W/2,chipW=small?176:210,engine={x:cx-chipW/2,y:29,w:chipW,h:97},onchip={x:cx-chipW/2,y:166,w:chipW,h:41},hb={x:small?6:35,y:239,w:W-(small?12:70),h:small?105:101};
+  const fusionSeparate=p===3&&!v,zones=p===3?[W*.16,W*.38,W*.62,W*.84]:[W*.20,W*.50,W*.80],xi=zones[0],wi=zones[1],ii=p===3?zones[2]:zones[1],yi=zones.at(-1);
+  const weightWidth=p===1&&v?10:20;
+  const busy=!!compute,computePosition=compute?(t-compute.start)/(compute.end-compute.start):0;
+  text('Compute',cx,13,16);
+  box(engine.x,engine.y,engine.w,engine.h,color(C.compute,busy?.12:.025),C.line,7);
+  let opLabel='Matmul';
+  if(p===1&&v&&compute&&t-compute.start<compute.dequant)opLabel='Dequantize';
+  if(p===2)opLabel=v?'Matrix unit':'General ALU';
+  if(p===3){opLabel=compute?compute.op:(fusionSeparate?(t<current.events.find(e=>e.stage===1).start?'Matmul':'GELU'):'Matmul → GELU');if(compute&&v)opLabel=t-compute.start<2?'Matmul':'GELU'}
+  text(opLabel,cx,engine.y+22,14);
+  const jobs=p===2&&!v?1:4,unitSize=25,gap=7,left=cx-(jobs*unitSize+(jobs-1)*gap)/2;
+  for(let i=0;i<jobs;i++){const level=busy?.55+.3*Math.sin((computePosition*3-i*.2)*Math.PI)**2:.08;box(left+i*(unitSize+gap),engine.y+42,unitSize,unitSize,color(C.compute,level),null,3);if(busy)text(opLabel==='GELU'?'∿':'×+',left+i*(unitSize+gap)+unitSize/2,engine.y+54,11,C.paper)}
+  text(busy?'chunk '+compute.n:state.clock>=current.total?'done':'wait',cx,engine.y+84,11,C.muted);
+  text(small?'On-chip':'On-chip memory',onchip.x,onchip.y-13,11,C.muted,'left');
+  box(onchip.x,onchip.y,onchip.w,onchip.h,C.faint,C.line,5);
+  const currentStage=active[0]?.stage??(state.clock>=current.total?config(p,v).length-1:0);
+  const slotX=[cx-37,cx+37];
+  for(let slot=0;slot<2;slot++){
+   const past=current.events.filter(e=>e.slot===slot&&e.stage===currentStage&&e.start<=t).at(-1),filled=past&&!(past.kind==='store'&&t>=past.end);
+   const col=past?.kind==='compute'?C.compute:past?.kind==='store'?(past.output==='I'?C.middle:C.y):past?.input==='I'?C.middle:C.x;
+   box(slotX[slot]-18,onchip.y+8,36,25,filled?color(col,.65):C.paper,null,3);if(filled)text(past.n,slotX[slot],onchip.y+20,11,C.paper);
+  }
+  const feed=[[cx,onchip.y],[cx,engine.y+engine.h]];arrow(feed);
+  if(compute){
+   const isGelu=opLabel==='GELU';
+   if(!(p===3&&v&&isGelu))packet([[cx-6,onchip.y],[cx-6,engine.y+engine.h]],((t-compute.start)*2)%1,isGelu?C.middle:C.x,'',10);
+   if(!isGelu)packet([[cx+6,onchip.y],[cx+6,engine.y+engine.h]],((t-compute.start)*2+.4)%1,C.w,'',p===1&&v?6:10);
+  }
+  box(hb.x,hb.y,hb.w,hb.h,color(C.ink,.025),C.line,7);
+  text('Memory · HBM',hb.x+12,hb.y+hb.h-12,small?12:14,C.ink,'left');
+  function rack(center,name,col,kind,width=20){
+   text(name,center,hb.y+15,small?11:12,C.muted);
+   for(let n=0;n<4;n++){
+    const xx=center-22+(n%2)*25,yy=hb.y+29+Math.floor(n/2)*23;
+    const done=current.events.some(e=>e.kind==='store'&&e.output===kind&&e.n===n&&t>=e.end);
+    const available=kind==='X'||kind==='W'||done;
+    box(xx,yy,width,19,color(col,available?.52:.09),null,3);if(width>=18)text(n,xx+width/2,yy+9,10,available?C.ink:C.muted);
+   }
+  }
+  rack(xi,'Activation',C.x,'X');rack(wi,p===1?(v?'Weight · INT8':'Weight · BF16'):'Weight',C.w,'W',weightWidth);if(fusionSeparate)rack(ii,'Intermediate',C.middle,'I');rack(yi,'Output',C.y,'Y');
+  if(p===3&&v){text('0 HBM trips',ii,hb.y+15,11,C.muted);text('—',ii,hb.y+47,18,C.line)}
+  const inputPath=(x,slot)=>[[x,hb.y],[x,onchip.y+onchip.h+10],[slotX[slot],onchip.y+onchip.h+10],[slotX[slot],onchip.y+onchip.h]];
+  const outputPath=(slot,out)=>[[slotX[slot]+20,onchip.y+20],[out,onchip.y+20],[out,hb.y]];
+  // Structural paths sit outside the labelled memory racks.
+  arrow(inputPath(xi,0));arrow(inputPath(wi,1));arrow(outputPath(1,yi));
+  if(fusionSeparate){arrow([[ii-7,hb.y],[ii-7,onchip.y+onchip.h+18],[slotX[0],onchip.y+onchip.h+18],[slotX[0],onchip.y+onchip.h]],color(C.middle,.8),2);arrow([[slotX[1]+20,onchip.y+20],[ii+7,onchip.y+20],[ii+7,hb.y]],color(C.middle,.8),2)}
+  if(load){const f=(t-load.start)/(load.end-load.start);if(load.input==='XW'){
+    const xRatio=p===1&&v?.5:p===1?1/3:.45;
+    if(f<xRatio)packet(inputPath(xi,load.slot),ease(f/xRatio),C.x,String(load.n));
+    else packet(inputPath(wi,load.slot),ease((f-xRatio)/(1-xRatio)),C.w,String(load.n),weightWidth);
+   }else packet(inputPath(ii,load.slot),ease(f),C.middle,String(load.n));}
+  if(store){const output=store.output==='I'?ii:yi;packet(outputPath(store.slot,output),ease((t-store.start)/(store.end-store.start)),store.output==='I'?C.middle:C.y,String(store.n));}
+  
+
+  const plotX=small?64:92,plotRight=W-(small?10:34),scale=(plotRight-plotX)/horizon,memoryY=H-70,computeY=H-34,barH=22;
+  if(p===1||p===2){const yy=p===1?memoryY:computeY;box(plotX-3,yy-3,plotRight-plotX+6,barH+6,null,p===1?C.x:C.compute,4);}text('Memory',plotX-10,memoryY+11,11,p===1?C.x:C.muted,'right');text('Compute',plotX-10,computeY+11,11,p===2?C.compute:C.muted,'right');
+  box(plotX,memoryY,plotRight-plotX,barH,C.faint,null,2);box(plotX,computeY,plotRight-plotX,barH,C.faint,null,2);
+  current.events.forEach(e=>{
+   const yy=e.kind==='compute'?computeY:memoryY,xx=plotX+e.start*scale,ww=(e.end-e.start)*scale,col=e.kind==='compute'?C.compute:e.kind==='store'?(e.output==='I'?C.middle:C.y):e.input==='I'?C.middle:C.x;
+   box(xx+.5,yy,Math.max(1,ww-1),barH,color(col,t<e.start?.11:t>=e.end?.46:.86),null,2);
+   const shortLabel=e.kind==='compute'||ww<42?String(e.n):e.kind+' '+e.n;
+   if(ww>=18)text(shortLabel,xx+ww/2,yy+11,10,t>=e.start&&t<e.end?C.paper:C.ink);
+  });
+  // Show the Matmul -> GELU boundary without introducing a third lane.
+  if(p===3&&!v){const e=current.events.find(e=>e.stage===1),at=plotX+e.start*scale;line(at,memoryY-7,at,computeY+barH+2,C.line)}
+  const cursorTime=Math.min(state.clock,state.page===0?current.total:horizon);
+  line(plotX+cursorTime*scale,memoryY-5,plotX+cursorTime*scale,computeY+barH+2,C.ink);
+ }
+ function paint(target,sch,variant){const r=target.getBoundingClientRect();if(!r.width)return;W=r.width;H=r.height;ctx=target.getContext('2d');const d=Math.min(2,devicePixelRatio||1),width=Math.round(W*d),height=Math.round(H*d);if(target.width!==width||target.height!==height){target.width=width;target.height=height}ctx.setTransform(d,0,0,d,0,0);drawPanel(sch,variant)}
+ function animationEnd(){return state.page===0?current.total:horizon}
+ function draw(){if(!current)return;if(state.page===0)paint(canvas,current,state.variants[0]);else{
+   paint($('before-scene'),baseline,0);paint($('after-scene'),current,1);
+   for(const [prefix,sch] of [['before',baseline],['after',current]]){const n=state.page===4?decodingFrame(sch,state.clock).counts.reduce((a,b)=>a+b,0):sch.events.filter(e=>e.kind==='store'&&e.output==='Y'&&state.clock>=e.end).length;$(prefix+'-output').textContent=n+(state.page===4?' / 64 tokens':' / 4 outputs');const finished=state.clock>=sch.total;$(prefix+'-finish').textContent=finished?'Finished':'Running';$(prefix+'-finish').classList.toggle('is-done',finished)}
+  }const end=animationEnd(),t=Math.min(state.clock,end);$('seek').value=Math.round(clamp(t/end)*1000);$('time').textContent=Number(t.toFixed(1))+' / '+Number(end.toFixed(1))+' ticks';}
+ function resize(){draw()}
+ $('play').addEventListener('click',()=>{state.playing=!state.playing;playLabel()});$('replay').addEventListener('click',()=>{state.clock=0;draw()});
+ $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('app').requestFullscreen()}catch{}});
+ $('seek').addEventListener('pointerdown',()=>dragging=true);window.addEventListener('pointerup',()=>dragging=false);$('seek').addEventListener('input',()=>{state.clock=Number($('seek').value)/1000*animationEnd();draw()});
+ document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>selectPage(Number(b.dataset.page))));
+ document.addEventListener('keydown',e=>{if(['INPUT','BUTTON','SUMMARY','A'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();state.playing=!state.playing;playLabel()}if(e.code==='ArrowRight'){e.preventDefault();selectPage(state.page+1)}if(e.code==='ArrowLeft'){e.preventDefault();selectPage(state.page-1)}});
+ function tick(now){const dt=last?Math.min(.1,(now-last)/1000):0;last=now;if(state.playing&&!dragging&&!document.hidden){state.clock+=dt/0.6;if(state.clock>animationEnd()+1.4)state.clock=0;draw()}requestAnimationFrame(tick)}
+ build();updateUI();playLabel();const observer=new ResizeObserver(resize);[canvas,$('before-scene'),$('after-scene')].forEach(c=>observer.observe(c));requestAnimationFrame(tick);
+ window.matmulDemo={getState:()=>({...state,variants:[...state.variants]}),getMetrics:sumWork,getSchedule:()=>current,getAllSchedules:()=>lessonData.slice(0,4).map((_,p)=>[schedule(config(p,0)),schedule(config(p,1))]),getDecodingSchedules:()=>[0,1].map(bound=>[decodingSchedule(0,bound),decodingSchedule(1,bound)]),getDecodingFrame:()=>({before:decodingFrame(baseline,state.clock),after:decodingFrame(current,state.clock)}),getComparison:()=>({before:baseline,after:current,clock:state.clock,horizon,end:animationEnd(),beforeDone:state.clock>=baseline.total,afterDone:state.clock>=current.total})};
+})();
+</script>
+</body>
+</html>
