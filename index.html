@@ -54,7 +54,7 @@ canvas{display:block;width:100%;height:420px}.result{display:flex;justify-conten
  <div id="sync-label" class="sync-label" hidden>Same workload · shared clock · same time scale</div>
  <div class="result"><div id="takeaway" class="takeaway" aria-live="polite">Memory-bound · compute waits for data.</div><div id="measure" class="measure"></div></div>
  <div class="seek"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Animation progress"><span id="time">0 / 17 ticks</span></div>
- <nav class="pages" aria-label="Learning pages"><button data-page="0" aria-current="page"><span class="number">01</span>Workflow</button><button data-page="1"><span class="number">02</span>Quantization</button><button data-page="2"><span class="number">03</span>Hardware support</button><button data-page="3"><span class="number">04</span>Kernel fusion</button><button data-page="4"><span class="number">05</span>Speculative decoding</button></nav>
+ <nav class="pages" aria-label="Learning pages"><button data-page="0" aria-current="page"><span class="number">01</span>Workflow</button><button data-page="4"><span class="number">02</span>Speculative decoding</button><button data-page="1"><span class="number">03</span>Quantization</button><button data-page="2"><span class="number">04</span>Hardware support</button><button data-page="3"><span class="number">05</span>Kernel fusion</button></nav>
  <footer class="footer"><span>Illustrative timing <span class="key">· Space: pause · ← →: page</span></span><details><summary>Terms & teaching notes ↗</summary><div class="notes">
   <p><b>Layer:</b> a model building block. <b>FFN:</b> Feed-Forward Network. <b>Operator:</b> one operation on tensors, such as Matmul or GELU. <b>Kernel:</b> a device program implementing one or more operators. <b>HBM:</b> High Bandwidth Memory.</p>
   <p><b>Workflow:</b> dependencies still apply. Matmul precedes GELU for each result. A kernel can load a later chunk while computing an earlier one and writing back a completed one. The memory lane combines reads and writes on one shared resource; two on-chip work buffers retain chunks until writeback. The four chunks represent independent completed output regions, with all required input reads grouped together.</p>
@@ -74,6 +74,7 @@ canvas{display:block;width:100%;height:420px}.result{display:flex;justify-conten
  'use strict';
  const $=id=>document.getElementById(id),canvas=$('scene');let ctx=canvas.getContext('2d');
  const C={ink:'#292d32',muted:'#71777b',line:'#daddd9',faint:'#edf0ed',paper:'#fafaf8',x:'#d57569',w:'#719b78',y:'#6e91c7',compute:'#a08dc4',middle:'#b9a474'};
+ const pageOrder=[0,4,1,2,3];
  const lessonData=[
   {title:'Operators & workflow',caption:'Model order gives dependencies. Chunks can overlap.',options:['Memory-bound','Compute-bound'],description:'The selected Matmul operator consumes activation and weight chunks. Data movement and computation overlap. Compare memory-bound compute waits with compute-bound data waits.'},
   {title:'Quantization',caption:'Watch Load 0–3 shrink. Weight bytes halve.',options:['BF16 weights','INT8 weights'],description:'Quantization halves the width of weight packets while activations and outputs stay unchanged. On-chip dequantization adds a little work; fewer bytes cross the memory link.'},
@@ -233,7 +234,7 @@ canvas{display:block;width:100%;height:420px}.result{display:flex;justify-conten
    $('sync-label').textContent=p===4?'BS 8 · same 64 output tokens · shared clock':p===3?'Shared clock · same time scale · *per intermediate chunk':'Same workload · shared clock · same time scale';
    $('before-scene').setAttribute('aria-label','Before: '+lesson.options[0]+'. '+lesson.description);$('after-scene').setAttribute('aria-label','After: '+lesson.options[1]+'. '+lesson.description);
   }
-  document.querySelectorAll('[data-page]').forEach((b,i)=>{if(i===p)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  document.querySelectorAll('[data-page]').forEach(b=>{if(Number(b.dataset.page)===p)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
  }
  function selectPage(p){state.page=(p+lessonData.length)%lessonData.length;state.clock=0;build();updateUI();draw()}
  function playLabel(){$('play').textContent=state.playing?'Ⅱ Pause':'▶ Play';$('play').setAttribute('aria-label',state.playing?'Pause animation':'Play animation')}
@@ -321,7 +322,7 @@ canvas{display:block;width:100%;height:420px}.result{display:flex;justify-conten
  $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('app').requestFullscreen()}catch{}});
  $('seek').addEventListener('pointerdown',()=>dragging=true);window.addEventListener('pointerup',()=>dragging=false);$('seek').addEventListener('input',()=>{state.clock=Number($('seek').value)/1000*animationEnd();draw()});
  document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>selectPage(Number(b.dataset.page))));
- document.addEventListener('keydown',e=>{if(['INPUT','BUTTON','SUMMARY','A'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();state.playing=!state.playing;playLabel()}if(e.code==='ArrowRight'){e.preventDefault();selectPage(state.page+1)}if(e.code==='ArrowLeft'){e.preventDefault();selectPage(state.page-1)}});
+ document.addEventListener('keydown',e=>{if(['INPUT','BUTTON','SUMMARY','A'].includes(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();state.playing=!state.playing;playLabel()}if(e.code==='ArrowRight'){e.preventDefault();selectPage(pageOrder[(pageOrder.indexOf(state.page)+1)%pageOrder.length])}if(e.code==='ArrowLeft'){e.preventDefault();selectPage(pageOrder[(pageOrder.indexOf(state.page)+pageOrder.length-1)%pageOrder.length])}});
  function tick(now){const dt=last?Math.min(.1,(now-last)/1000):0;last=now;if(state.playing&&!dragging&&!document.hidden){state.clock+=dt/0.6;if(state.clock>animationEnd()+1.4)state.clock=0;draw()}requestAnimationFrame(tick)}
  build();updateUI();playLabel();const observer=new ResizeObserver(resize);[canvas,$('before-scene'),$('after-scene')].forEach(c=>observer.observe(c));requestAnimationFrame(tick);
  window.matmulDemo={getState:()=>({...state,variants:[...state.variants]}),getMetrics:sumWork,getSchedule:()=>current,getAllSchedules:()=>lessonData.slice(0,4).map((_,p)=>[schedule(config(p,0)),schedule(config(p,1))]),getDecodingSchedules:()=>[0,1].map(bound=>[decodingSchedule(0,bound),decodingSchedule(1,bound)]),getDecodingFrame:()=>({before:decodingFrame(baseline,state.clock),after:decodingFrame(current,state.clock)}),getComparison:()=>({before:baseline,after:current,clock:state.clock,horizon,end:animationEnd(),beforeDone:state.clock>=baseline.total,afterDone:state.clock>=current.total})};

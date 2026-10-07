@@ -15,10 +15,10 @@ Use the page buttons at the bottom. Play/pause, replay, and the progress slider 
 | Page | Main comparison |
 | --- | --- |
 | 01 Workflow | Operators, tiled data movement, overlap, memory-bound vs. compute-bound execution |
-| 02 Quantization | BF16 vs. INT8 weights: Load 0–3 gets shorter |
-| 03 Hardware support | General arithmetic vs. matrix acceleration: Compute 0–3 gets shorter |
-| 04 Kernel fusion | Separate vs. fused kernels: intermediate HBM writes and reads disappear |
-| 05 Speculative decoding | Batch size 8: fewer target weight loads, more verification compute; compare spare compute with a compute-bound device |
+| 02 Speculative decoding | Batch size 8: fewer target weight loads, more verification compute; compare spare compute with a compute-bound device |
+| 03 Quantization | BF16 vs. INT8 weights: Load 0–3 gets shorter |
+| 04 Hardware support | General arithmetic vs. matrix acceleration: Compute 0–3 gets shorter |
+| 05 Kernel fusion | Separate vs. fused kernels: intermediate HBM writes and reads disappear |
 
 Pages 02–05 use synchronized Before/After views with a shared clock and time scale. Timing is illustrative, not a hardware benchmark. Page 05 uses a scripted greedy decoding example with up to three draft tokens per request; both paths produce the same 64 output tokens. Teaching notes and primary-source links are inside the demo.
 
